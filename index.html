@@ -130,6 +130,7 @@
             <thead>
               <tr>
                 <th>Câu</th>
+                <th>Ảnh</th>
                 <th>Đáp án đúng</th>
                 <th>Đáp án của bạn</th>
                 <th>Trạng thái</th>
@@ -140,6 +141,21 @@
         </div>
 
         <button id="backToHomeBtn" class="btn btn--primary">Quay lại</button>
+      </div>
+
+      <!-- Image preview modal -->
+      <div id="imageModal" class="image-modal" aria-hidden="true">
+        <div class="image-modal__backdrop" id="imageModalBackdrop"></div>
+        <div class="image-modal__content" role="dialog" aria-modal="true">
+          <button
+            id="imageModalClose"
+            class="image-modal__close"
+            aria-label="Đóng"
+          >
+            ×
+          </button>
+          <img id="imageModalImg" src="" alt="Preview" />
+        </div>
       </div>
     </div>
 

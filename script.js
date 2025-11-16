@@ -177,7 +177,7 @@ const questionsData = [
   {questionid: 175, filename: "Question175.PNG", answer: "D"}
 ];
 
-// In-memory storage for history
+// In-memory storage for history (now includes full results)
 let testHistory = [];
 
 // Current quiz state
@@ -270,6 +270,7 @@ function renderHistory() {
         <th>Số câu</th>
         <th>Điểm</th>
         <th>Tỉ lệ (%)</th>
+        <th>Hành động</th>
       </tr>
     </thead>
     <tbody>
@@ -280,6 +281,7 @@ function renderHistory() {
           <td>${item.totalQuestions}</td>
           <td>${item.score.toFixed(1)}</td>
           <td>${item.percentage.toFixed(1)}%</td>
+          <td><button class="btn btn--secondary" style="padding: 6px 12px; font-size: 13px;" data-history-index="${index}">Xem chi tiết</button></td>
         </tr>
       `).join('')}
     </tbody>
@@ -287,6 +289,62 @@ function renderHistory() {
   
   historyContainer.innerHTML = '';
   historyContainer.appendChild(table);
+
+  // Attach click handlers for "Xem chi tiết" buttons
+  table.querySelectorAll('button[data-history-index]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = parseInt(e.target.dataset.historyIndex);
+      showHistoryDetail(sortedHistory[idx]);
+    });
+  });
+}
+
+function showHistoryDetail(historyItem) {
+  // Display summary stats
+  resultScore.textContent = historyItem.score.toFixed(1);
+  correctCount.textContent = historyItem.correct;
+  wrongCount.textContent = historyItem.wrong;
+  emptyCount.textContent = historyItem.empty;
+  percentageScore.textContent = historyItem.percentage.toFixed(1) + '%';
+  
+  // Render results table from saved detailedResults
+  const results = historyItem.detailedResults || [];
+  resultTableBody.innerHTML = results.map(result => {
+    let statusHtml = '';
+    if (result.status === 'correct') {
+      statusHtml = '<span class="status-correct">✓ Đúng</span>';
+    } else if (result.status === 'wrong') {
+      statusHtml = '<span class="status-wrong">✗ Sai</span>';
+    } else {
+      statusHtml = '<span class="status-empty">○ Bỏ trống</span>';
+    }
+
+    const imgCell = result.filename
+      ? `<td><img class="result-thumb" src="data/${result.filename}" data-src="data/${result.filename}" alt="Câu ${result.questionNum}" /></td>`
+      : `<td>-</td>`;
+    
+    return `
+      <tr>
+        <td>Câu ${result.questionNum}</td>
+        ${imgCell}
+        <td>${result.correctAnswer}</td>
+        <td>${result.userAnswer}</td>
+        <td>${statusHtml}</td>
+      </tr>
+    `;
+  }).join('');
+  
+  // Attach click handlers to thumbnails
+  document.querySelectorAll('.result-thumb').forEach(img => {
+    img.style.cursor = 'pointer';
+    img.addEventListener('click', (e) => {
+      const src = e.currentTarget.dataset.src;
+      const alt = e.currentTarget.alt || '';
+      if (src) openImageModal(src, alt);
+    });
+  });
+  
+  showScreen(resultScreen);
 }
 
 function startQuiz() {
@@ -318,7 +376,6 @@ function renderQuestion() {
     img.alt = question.filename;
     img.onload = () => { /* ảnh tải thành công */ };
     img.onerror = () => {
-      // Nếu không tìm thấy ảnh, hiển thị tên file như text
       questionImage.innerHTML = question.filename;
     };
     questionImage.appendChild(img);
@@ -326,13 +383,20 @@ function renderQuestion() {
     questionImage.textContent = 'Không có ảnh';
   }
   
-  // Update answer buttons
+  // Update answer buttons: reset state (khi render câu mới cho phép chọn lại)
   const answerBtns = answersGrid.querySelectorAll('.answer-btn');
   answerBtns.forEach(btn => {
-    btn.classList.remove('selected');
+    btn.classList.remove('selected', 'correct', 'wrong');
+    btn.disabled = false;
     const answer = btn.dataset.answer;
     if (currentQuiz.userAnswers[currentQuiz.currentIndex] === answer) {
       btn.classList.add('selected');
+      // nếu đã có câu trả lời trước đó, show feedback ngay
+      const correctAnswer = currentQuiz.questions[currentQuiz.currentIndex].answer;
+      if (answer === correctAnswer) btn.classList.add('correct');
+      else btn.classList.add('wrong');
+      // lock if there was an answer already
+      answerBtns.forEach(b => b.disabled = true);
     }
   });
   
@@ -345,15 +409,33 @@ function renderQuestion() {
 }
 
 function selectAnswer(answer) {
-  currentQuiz.userAnswers[currentQuiz.currentIndex] = answer;
-  
+  const idx = currentQuiz.currentIndex;
+  if (!currentQuiz.questions.length) return;
+
   const answerBtns = answersGrid.querySelectorAll('.answer-btn');
+  // nếu đã khóa (đã chọn trước đó) thì không cho chọn lại
+  if (answerBtns[0] && answerBtns[0].disabled) return;
+
+  // lưu đáp án người dùng
+  currentQuiz.userAnswers[idx] = answer;
+
+  // reset classes then mark selected
   answerBtns.forEach(btn => {
-    btn.classList.remove('selected');
-    if (btn.dataset.answer === answer) {
-      btn.classList.add('selected');
-    }
+    btn.classList.remove('selected', 'correct', 'wrong');
+    btn.disabled = true; // khóa luôn sau khi chọn để người dùng biết kết quả
+    if (btn.dataset.answer === answer) btn.classList.add('selected');
   });
+
+  const correctAnswer = currentQuiz.questions[idx].answer;
+  if (answer === correctAnswer) {
+    const btn = answersGrid.querySelector(`.answer-btn[data-answer="${answer}"]`);
+    if (btn) btn.classList.add('correct');
+  } else {
+    const selectedBtn = answersGrid.querySelector(`.answer-btn[data-answer="${answer}"]`);
+    const correctBtn = answersGrid.querySelector(`.answer-btn[data-answer="${correctAnswer}"]`);
+    if (selectedBtn) selectedBtn.classList.add('wrong');
+    if (correctBtn) correctBtn.classList.add('correct');
+  }
 }
 
 function nextQuestion() {
@@ -389,6 +471,7 @@ function finishQuiz() {
     
     return {
       questionNum: index + 1,
+      filename: question.filename || '',
       correctAnswer: correctAnswer || 'N/A',
       userAnswer: userAnswer || '-',
       status
@@ -399,7 +482,7 @@ function finishQuiz() {
   const score = (correct / totalQuestions) * 10;
   const percentage = (correct / totalQuestions) * 100;
   
-  // Save to history
+  // Save to history WITH detailed results
   testHistory.push({
     date: new Date(),
     subject: currentQuiz.subject,
@@ -408,7 +491,8 @@ function finishQuiz() {
     wrong,
     empty,
     score,
-    percentage
+    percentage,
+    detailedResults: results // lưu chi tiết để hiển thị sau
   });
   
   // Display results
@@ -418,7 +502,7 @@ function finishQuiz() {
   emptyCount.textContent = empty;
   percentageScore.textContent = percentage.toFixed(1) + '%';
   
-  // Render results table
+  // Render results table (thumbnails open modal on click)
   resultTableBody.innerHTML = results.map(result => {
     let statusHtml = '';
     if (result.status === 'correct') {
@@ -428,16 +512,31 @@ function finishQuiz() {
     } else {
       statusHtml = '<span class="status-empty">○ Bỏ trống</span>';
     }
+
+    const imgCell = result.filename
+      ? `<td><img class="result-thumb" src="data/${result.filename}" data-src="data/${result.filename}" alt="Câu ${result.questionNum}" /></td>`
+      : `<td>-</td>`;
     
     return `
       <tr>
         <td>Câu ${result.questionNum}</td>
+        ${imgCell}
         <td>${result.correctAnswer}</td>
         <td>${result.userAnswer}</td>
         <td>${statusHtml}</td>
       </tr>
     `;
   }).join('');
+  
+  // Attach click handlers to thumbnails to open modal (uses existing openImageModal)
+  document.querySelectorAll('.result-thumb').forEach(img => {
+    img.style.cursor = 'pointer';
+    img.addEventListener('click', (e) => {
+      const src = e.currentTarget.dataset.src;
+      const alt = e.currentTarget.alt || '';
+      if (src) openImageModal(src, alt);
+    });
+  });
   
   showScreen(resultScreen);
 }
@@ -460,6 +559,94 @@ function clearHistory() {
     renderHistory();
   }
 }
+
+// --- Simple image modal with wheel-zoom and drag-pan ---
+const imageModal = document.getElementById('imageModal');
+const imageModalImg = document.getElementById('imageModalImg');
+const imageModalClose = document.getElementById('imageModalClose');
+const imageModalBackdrop = document.getElementById('imageModalBackdrop');
+
+let imgScale = 1;
+let panX = 0;
+let panY = 0;
+let isPanning = false;
+let startX = 0;
+let startY = 0;
+
+// open modal with src
+function openImageModal(src, alt = '') {
+  imageModalImg.src = src;
+  imageModalImg.alt = alt;
+  imgScale = 1;
+  panX = 0; panY = 0;
+  applyTransform();
+  imageModal.classList.add('active');
+  imageModal.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+  imageModalImg.focus?.();
+}
+
+// close modal
+function closeImageModal() {
+  imageModal.classList.remove('active');
+  imageModal.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+  imageModalImg.src = '';
+}
+
+// apply transform (scale + translate)
+function applyTransform() {
+  imageModalImg.style.transform = `translate(${panX}px, ${panY}px) scale(${imgScale})`;
+}
+
+// open when clicked on question image (the img inside .question-image)
+questionImage.addEventListener('click', (e) => {
+  const img = e.target.tagName === 'IMG' ? e.target : questionImage.querySelector('img');
+  if (img && img.src) {
+    openImageModal(img.src, img.alt || '');
+  }
+});
+
+// close handlers
+imageModalClose.addEventListener('click', closeImageModal);
+imageModalBackdrop.addEventListener('click', closeImageModal);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && imageModal.classList.contains('active')) closeImageModal();
+});
+
+// wheel to zoom
+imageModalImg.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const delta = -Math.sign(e.deltaY) * 0.1;
+  imgScale = Math.min(4, Math.max(0.5, imgScale + delta));
+  applyTransform();
+});
+
+// pan with mouse
+imageModalImg.addEventListener('mousedown', (e) => {
+  isPanning = true;
+  startX = e.clientX - panX;
+  startY = e.clientY - panY;
+  imageModalImg.classList.add('grabbing');
+  e.preventDefault();
+});
+window.addEventListener('mousemove', (e) => {
+  if (!isPanning) return;
+  panX = e.clientX - startX;
+  panY = e.clientY - startY;
+  applyTransform();
+});
+window.addEventListener('mouseup', () => {
+  if (!isPanning) return;
+  isPanning = false;
+  imageModalImg.classList.remove('grabbing');
+});
+
+// double click to reset zoom/position
+imageModalImg.addEventListener('dblclick', () => {
+  imgScale = 1; panX = 0; panY = 0;
+  applyTransform();
+});
 
 // Event listeners
 startBtn.addEventListener('click', startQuiz);

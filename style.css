@@ -473,6 +473,41 @@ select.form-control {
   border-color: var(--color-primary);
 }
 
+/* Feedback styles when user selects */
+.answer-btn.correct {
+  background: linear-gradient(180deg, rgba(var(--color-success-rgb), 0.12), rgba(var(--color-success-rgb), 0.06));
+  border-color: rgba(var(--color-success-rgb), 0.9);
+  color: var(--color-text);
+  position: relative;
+}
+.answer-btn.correct::after {
+  content: "✓ Đúng";
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-success);
+  margin-left: 8px;
+}
+
+/* Wrong selection */
+.answer-btn.wrong {
+  background: linear-gradient(180deg, rgba(var(--color-error-rgb), 0.08), rgba(var(--color-error-rgb), 0.04));
+  border-color: rgba(var(--color-error-rgb), 0.9);
+  color: var(--color-text);
+}
+.answer-btn.wrong::after {
+  content: "✗ Sai";
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-error);
+  margin-left: 8px;
+}
+
+/* Khi bị disabled (đã chọn) giảm pointer và hơi mờ */
+.answer-btn:disabled {
+  cursor: default;
+  opacity: 0.95;
+}
+
 .answer-btn:nth-child(1) { order: 1; }
 .answer-btn:nth-child(2) { order: 2; }
 .answer-btn:nth-child(3) { order: 3; }
@@ -574,6 +609,72 @@ select.form-control {
 .status-empty {
   color: var(--color-text-secondary);
 }
+
+.image-modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.image-modal.active { display: flex; }
+.image-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+}
+.image-modal__content {
+  position: relative;
+  max-width: 92vw;
+  max-height: 92vh;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.image-modal__close {
+  position: absolute;
+  right: -8px;
+  top: -8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-card-border-inner);
+  border-radius: 999px;
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 2;
+}
+#imageModalImg {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  transition: transform 120ms ease;
+  transform-origin: center center;
+  cursor: grab;
+}
+#imageModalImg.grabbing { cursor: grabbing; }
+
+/* Thumbnail in results table */
+.result-thumb {
+  width: 84px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--color-card-border-inner);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.result-thumb:hover {
+  transform: scale(1.04);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+}
+
+/* Make thumbnail cell vertically centered */
+.result-table td img { vertical-align: middle; }
 
 @media (max-width: 640px) {
   .answers-grid {
