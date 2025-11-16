@@ -200,7 +200,7 @@ body {
 
 /* Custom Styles */
 .app-container {
-  max-width: 900px;
+  max-width: 90vw;
   margin: 0 auto;
   padding: var(--space-32) var(--space-16);
 }
@@ -416,13 +416,15 @@ select.form-control {
   border-radius: var(--radius-lg);
   padding: var(--space-32);
   margin-bottom: var(--space-24);
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 15px;
+  align-items: start;
 }
 
 .question-image {
   width: 100%;
-  max-width: 600px;
-  height: 300px;
-  margin: 0 auto var(--space-24) auto;
+  height: 500px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -431,6 +433,7 @@ select.form-control {
   border-radius: var(--radius-base);
   color: var(--color-text-secondary);
   font-size: var(--font-size-lg);
+  order: 2;
 }
 
 /* Thêm: đảm bảo ảnh co giãn đúng trong khung câu hỏi */
@@ -438,20 +441,22 @@ select.form-control {
   max-width: 100%;
   max-height: 100%;
   width: auto;
-  height: 100%;
+  height: auto;
   object-fit: contain;
   display: block;
+  cursor: pointer;
 }
 
 .answers-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-16);
-  margin-top: var(--space-24);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  order: 1;
+  width: 80px;
 }
 
 .answer-btn {
-  padding: var(--space-20);
+  padding: var(--space-16);
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
   border: 2px solid var(--color-border);
@@ -460,6 +465,8 @@ select.form-control {
   color: var(--color-text);
   cursor: pointer;
   transition: all var(--duration-normal) var(--ease-standard);
+  text-align: center;
+  width: 100%;
 }
 
 .answer-btn:hover {
@@ -677,8 +684,18 @@ select.form-control {
 .result-table td img { vertical-align: middle; }
 
 @media (max-width: 640px) {
-  .answers-grid {
+  .question-container {
     grid-template-columns: 1fr;
+    gap: var(--space-16);
+  }
+  
+  .answers-grid {
+    order: 2;
+  }
+  
+  .question-image {
+    order: 1;
+    height: 300px;
   }
   
   .quiz-header {
