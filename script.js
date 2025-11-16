@@ -185,7 +185,10 @@ let currentQuiz = {
   questions: [],
   currentIndex: 0,
   userAnswers: [],
-  subject: 'CSD203'
+  subject: 'CSD203',
+  startTime: null,
+  elapsedTime: 0,
+  timerInterval: null
 };
 
 // DOM elements
@@ -201,6 +204,7 @@ const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 
 const quizTitle = document.getElementById('quizTitle');
 const quizProgress = document.getElementById('quizProgress');
+const quizTimer = document.getElementById('quizTimer');
 const questionImage = document.getElementById('questionImage');
 const answersGrid = document.getElementById('answersGrid');
 const nextBtn = document.getElementById('nextBtn');
@@ -252,6 +256,33 @@ function validateQuestionCount() {
   return true;
 }
 
+function formatTime(seconds) {
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  if (hrs > 0) {
+    return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+  return `${mins}:${String(secs).padStart(2, '0')}`;
+}
+
+function startTimer() {
+  currentQuiz.startTime = Date.now();
+  currentQuiz.elapsedTime = 0;
+  
+  currentQuiz.timerInterval = setInterval(() => {
+    currentQuiz.elapsedTime = Math.floor((Date.now() - currentQuiz.startTime) / 1000);
+    quizTimer.textContent = `⏱ ${formatTime(currentQuiz.elapsedTime)}`;
+  }, 1000);
+}
+
+function stopTimer() {
+  if (currentQuiz.timerInterval) {
+    clearInterval(currentQuiz.timerInterval);
+    currentQuiz.timerInterval = null;
+  }
+}
+
 function renderHistory() {
   if (testHistory.length === 0) {
     historyContainer.innerHTML = '<div class="empty-state">Chưa có lịch sử thi</div>';
@@ -268,6 +299,7 @@ function renderHistory() {
         <th>STT</th>
         <th>Ngày thi</th>
         <th>Số câu</th>
+        <th>Thời gian</th>
         <th>Điểm</th>
         <th>Tỉ lệ (%)</th>
         <th>Hành động</th>
@@ -279,6 +311,7 @@ function renderHistory() {
           <td>${index + 1}</td>
           <td>${formatDate(item.date)}</td>
           <td>${item.totalQuestions}</td>
+          <td>${formatTime(item.timeSpent || 0)}</td>
           <td>${item.score.toFixed(1)}</td>
           <td>${item.percentage.toFixed(1)}%</td>
           <td><button class="btn btn--secondary" style="padding: 6px 12px; font-size: 13px;" data-history-index="${index}">Xem chi tiết</button></td>
@@ -299,16 +332,21 @@ function renderHistory() {
   });
 }
 
-function showHistoryDetail(historyItem) {
-  // Display summary stats
-  resultScore.textContent = historyItem.score.toFixed(1);
-  correctCount.textContent = historyItem.correct;
-  wrongCount.textContent = historyItem.wrong;
-  emptyCount.textContent = historyItem.empty;
-  percentageScore.textContent = historyItem.percentage.toFixed(1) + '%';
+function displayResults(score, correct, wrong, empty, percentage, timeSpent, results) {
+  resultScore.textContent = score.toFixed(1);
+  correctCount.textContent = correct;
+  wrongCount.textContent = wrong;
+  emptyCount.textContent = empty;
+  percentageScore.textContent = percentage.toFixed(1) + '%';
   
-  // Render results table from saved detailedResults
-  const results = historyItem.detailedResults || [];
+  // Render results table with time info header
+  const timeInfo = `
+    <div class="result-time-info">
+      <span class="result-time-label">Thời gian làm bài:</span>
+      <span class="result-time-value">${formatTime(timeSpent || 0)}</span>
+    </div>
+  `;
+  
   resultTableBody.innerHTML = results.map(result => {
     let statusHtml = '';
     if (result.status === 'correct') {
@@ -334,7 +372,13 @@ function showHistoryDetail(historyItem) {
     `;
   }).join('');
   
-  // Attach click handlers to thumbnails
+  // Insert time info before table
+  const resultTable = document.getElementById('resultTable');
+  const existingTimeInfo = document.querySelector('.result-time-info');
+  if (existingTimeInfo) existingTimeInfo.remove();
+  resultTable.insertAdjacentHTML('beforebegin', timeInfo);
+  
+  // Attach click handlers to thumbnails to open modal
   document.querySelectorAll('.result-thumb').forEach(img => {
     img.style.cursor = 'pointer';
     img.addEventListener('click', (e) => {
@@ -343,6 +387,19 @@ function showHistoryDetail(historyItem) {
       if (src) openImageModal(src, alt);
     });
   });
+}
+
+function showHistoryDetail(historyItem) {
+  // Display summary stats and time
+  displayResults(
+    historyItem.score,
+    historyItem.correct,
+    historyItem.wrong,
+    historyItem.empty,
+    historyItem.percentage,
+    historyItem.timeSpent || 0,
+    historyItem.detailedResults || []
+  );
   
   showScreen(resultScreen);
 }
@@ -356,6 +413,7 @@ function startQuiz() {
   currentQuiz.currentIndex = 0;
   currentQuiz.userAnswers = new Array(count).fill(null);
   
+  startTimer();
   renderQuestion();
   showScreen(quizScreen);
 }
@@ -448,6 +506,8 @@ function nextQuestion() {
 }
 
 function finishQuiz() {
+  stopTimer();
+  
   // Calculate results
   let correct = 0;
   let wrong = 0;
@@ -482,7 +542,7 @@ function finishQuiz() {
   const score = (correct / totalQuestions) * 10;
   const percentage = (correct / totalQuestions) * 100;
   
-  // Save to history WITH detailed results
+  // Save to history WITH detailed results and time
   testHistory.push({
     date: new Date(),
     subject: currentQuiz.subject,
@@ -492,57 +552,19 @@ function finishQuiz() {
     empty,
     score,
     percentage,
-    detailedResults: results // lưu chi tiết để hiển thị sau
+    timeSpent: currentQuiz.elapsedTime,
+    detailedResults: results
   });
   
-  // Display results
-  resultScore.textContent = score.toFixed(1);
-  correctCount.textContent = correct;
-  wrongCount.textContent = wrong;
-  emptyCount.textContent = empty;
-  percentageScore.textContent = percentage.toFixed(1) + '%';
-  
-  // Render results table (thumbnails open modal on click)
-  resultTableBody.innerHTML = results.map(result => {
-    let statusHtml = '';
-    if (result.status === 'correct') {
-      statusHtml = '<span class="status-correct">✓ Đúng</span>';
-    } else if (result.status === 'wrong') {
-      statusHtml = '<span class="status-wrong">✗ Sai</span>';
-    } else {
-      statusHtml = '<span class="status-empty">○ Bỏ trống</span>';
-    }
-
-    const imgCell = result.filename
-      ? `<td><img class="result-thumb" src="data/${result.filename}" data-src="data/${result.filename}" alt="Câu ${result.questionNum}" /></td>`
-      : `<td>-</td>`;
-    
-    return `
-      <tr>
-        <td>Câu ${result.questionNum}</td>
-        ${imgCell}
-        <td>${result.correctAnswer}</td>
-        <td>${result.userAnswer}</td>
-        <td>${statusHtml}</td>
-      </tr>
-    `;
-  }).join('');
-  
-  // Attach click handlers to thumbnails to open modal (uses existing openImageModal)
-  document.querySelectorAll('.result-thumb').forEach(img => {
-    img.style.cursor = 'pointer';
-    img.addEventListener('click', (e) => {
-      const src = e.currentTarget.dataset.src;
-      const alt = e.currentTarget.alt || '';
-      if (src) openImageModal(src, alt);
-    });
-  });
+  // Display results with time
+  displayResults(score, correct, wrong, empty, percentage, currentQuiz.elapsedTime, results);
   
   showScreen(resultScreen);
 }
 
 function backToSelection() {
   if (confirm('Bạn có chắc chắn muốn quay lại? Bài thi hiện tại sẽ không được lưu.')) {
+    stopTimer();
     renderHistory();
     showScreen(selectionScreen);
   }

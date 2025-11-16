@@ -410,6 +410,13 @@ select.form-control {
   color: var(--color-text-secondary);
 }
 
+.quiz-timer {
+  font-size: var(--font-size-lg);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-mono);
+}
+
 .question-container {
   background: var(--color-surface);
   border: 1px solid var(--color-card-border);
@@ -578,6 +585,30 @@ select.form-control {
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-semibold);
   margin-bottom: var(--space-16);
+}
+
+.result-time-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-16);
+  margin-bottom: var(--space-16);
+  background: var(--color-bg-1);
+  border: 1px solid var(--color-card-border-inner);
+  border-radius: var(--radius-base);
+}
+
+.result-time-label {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.result-time-value {
+  font-size: var(--font-size-xl);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-mono);
 }
 
 .result-table {
