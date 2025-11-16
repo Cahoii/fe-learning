@@ -177,8 +177,44 @@ const questionsData = [
   {questionid: 175, filename: "Question175.PNG", answer: "D"}
 ];
 
-// In-memory storage for history (now includes full results)
+// In-memory storage for history (now synced with localStorage)
 let testHistory = [];
+
+// Load history from localStorage on page load
+function loadHistoryFromStorage() {
+  try {
+    const stored = localStorage.getItem('felearning_history');
+    if (stored) {
+      testHistory = JSON.parse(stored);
+      // Convert date strings back to Date objects
+      testHistory = testHistory.map(item => ({
+        ...item,
+        date: new Date(item.date)
+      }));
+    }
+  } catch (error) {
+    console.error('Error loading history from localStorage:', error);
+    testHistory = [];
+  }
+}
+
+// Save history to localStorage
+function saveHistoryToStorage() {
+  try {
+    localStorage.setItem('felearning_history', JSON.stringify(testHistory));
+  } catch (error) {
+    console.error('Error saving history to localStorage:', error);
+  }
+}
+
+// Clear history from localStorage
+function clearHistory() {
+  if (confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử thi?')) {
+    testHistory = [];
+    localStorage.removeItem('felearning_history');
+    renderHistory();
+  }
+}
 
 // Current quiz state
 let currentQuiz = {
@@ -556,6 +592,9 @@ function finishQuiz() {
     detailedResults: results
   });
   
+  // Save to localStorage
+  saveHistoryToStorage();
+  
   // Display results with time
   displayResults(score, correct, wrong, empty, percentage, currentQuiz.elapsedTime, results);
   
@@ -578,6 +617,7 @@ function backToHome() {
 function clearHistory() {
   if (confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử thi?')) {
     testHistory = [];
+    localStorage.removeItem('felearning_history');
     renderHistory();
   }
 }
@@ -670,14 +710,15 @@ imageModalImg.addEventListener('dblclick', () => {
   applyTransform();
 });
 
-// Event listeners
+// Event Listeners
 startBtn.addEventListener('click', startQuiz);
-
-questionCountInput.addEventListener('input', () => {
-  if (questionError.style.display !== 'none') {
-    validateQuestionCount();
-  }
+nextBtn.addEventListener('click', nextQuestion);
+backToSelectionBtn.addEventListener('click', backToSelection);
+backToHomeBtn.addEventListener('click', () => {
+  renderHistory();
+  showScreen(selectionScreen);
 });
+clearHistoryBtn.addEventListener('click', clearHistory);
 
 answersGrid.addEventListener('click', (e) => {
   if (e.target.classList.contains('answer-btn')) {
@@ -685,10 +726,6 @@ answersGrid.addEventListener('click', (e) => {
   }
 });
 
-nextBtn.addEventListener('click', nextQuestion);
-backToSelectionBtn.addEventListener('click', backToSelection);
-backToHomeBtn.addEventListener('click', backToHome);
-clearHistoryBtn.addEventListener('click', clearHistory);
-
-// Initialize
+// Initialize app - load history from localStorage
+loadHistoryFromStorage();
 renderHistory();
