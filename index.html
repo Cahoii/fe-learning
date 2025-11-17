@@ -4,158 +4,176 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="style.css" />
-    <title>Ôn Tập Trắc Nghiệm - CSD203</title>
+    <title>Ôn Tập Trắc Nghiệm</title>
   </head>
   <body>
     <div class="app-container">
-      <!-- Selection Screen -->
-      <div id="selectionScreen" class="screen active">
+      <!-- Trang chính - Màn hình chọn -->
+      <div id="homeScreen" class="screen active">
         <div class="header">
           <h1>Ôn Tập Trắc Nghiệm</h1>
-          <p>Chọn môn học và số lượng câu hỏi để bắt đầu</p>
+          <p>Chọn môn học và cấu hình bài thi</p>
         </div>
 
         <div class="form-section">
           <h2>Thiết lập bài thi</h2>
+
           <div class="form-group">
-            <label for="subjectSelect">Chọn môn học:</label>
+            <label for="subjectSelect">Môn học:</label>
             <select id="subjectSelect" class="form-control">
               <option value="CSD203">
                 CSD203 - Data Structures and Algorithms
               </option>
+              <option value="DBI202">DBI202 - Database Systems</option>
             </select>
           </div>
+
           <div class="form-group">
-            <label for="questionCount">Số lượng câu hỏi (1-175):</label>
+            <label for="questionCount">Số lượng câu hỏi:</label>
             <input
               type="number"
               id="questionCount"
               class="form-control"
               min="1"
-              max="175"
               value="10"
             />
-            <div
-              id="questionError"
-              class="error-text"
-              style="display: none"
-            ></div>
+            <small class="hint-text" id="questionHint">Đang tải...</small>
           </div>
-          <button id="startBtn" class="btn btn--primary">Bắt đầu thi</button>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="instantFeedback" />
+              <span>Hiển thị kết quả ngay sau khi chọn đáp án</span>
+            </label>
+          </div>
+
+          <button id="startBtn" class="btn btn-primary">Bắt đầu thi</button>
         </div>
 
         <div class="form-section">
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: var(--space-16);
-            "
-          >
-            <h2 style="margin-bottom: 0">Lịch sử thi</h2>
-            <button
-              id="clearHistoryBtn"
-              class="btn btn--danger"
-              style="
-                padding: var(--space-8) var(--space-16);
-                font-size: var(--font-size-sm);
-              "
-            >
-              Xóa lịch sử
-            </button>
-          </div>
-          <div id="historyContainer">
-            <div class="empty-state">Chưa có lịch sử thi</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quiz Screen -->
-      <div id="quizScreen" class="screen">
-        <div class="quiz-header">
-          <h1 class="quiz-title" id="quizTitle">CSD203</h1>
-          <div class="quiz-progress" id="quizProgress">Câu 1/10</div>
-          <div class="quiz-timer" id="quizTimer">⏱ 0:00</div>
-        </div>
-
-        <div class="question-container">
-          <div class="question-image" id="questionImage">Question1.png</div>
-          <div class="answers-grid" id="answersGrid">
-            <button class="answer-btn" data-answer="A">A</button>
-            <button class="answer-btn" data-answer="B">B</button>
-            <button class="answer-btn" data-answer="C">C</button>
-            <button class="answer-btn" data-answer="D">D</button>
-          </div>
-        </div>
-
-        <div class="quiz-controls">
-          <button id="backToSelectionBtn" class="btn btn--secondary">
-            Quay lại
+          <h2>Lịch sử thi</h2>
+          <div id="historyContainer"></div>
+          <button id="clearHistoryBtn" class="btn btn-danger">
+            Xóa lịch sử
           </button>
-          <button id="nextBtn" class="btn btn--primary">Tiếp theo</button>
         </div>
       </div>
 
-      <!-- Result Screen -->
+      <!-- Trang làm bài thi -->
+      <div id="quizScreen" class="screen">
+        <div class="quiz-layout">
+          <!-- Khối chính: Câu hỏi và đáp án -->
+          <div class="quiz-main">
+            <div class="question-header">
+              <h2 id="questionTitle">Câu 1/10</h2>
+            </div>
+
+            <div class="question-content">
+              <div class="question-image-wrapper">
+                <img id="questionImage" src="" alt="Câu hỏi" />
+              </div>
+
+              <div class="answers-wrapper">
+                <button class="answer-btn" data-answer="A">A</button>
+                <button class="answer-btn" data-answer="B">B</button>
+                <button class="answer-btn" data-answer="C">C</button>
+                <button class="answer-btn" data-answer="D">D</button>
+              </div>
+            </div>
+
+            <div class="quiz-navigation">
+              <button id="prevQuestionBtn" class="btn btn-secondary">
+                ← Câu trước
+              </button>
+              <button id="nextQuestionBtn" class="btn btn-secondary">
+                Câu sau →
+              </button>
+              <button id="submitQuizBtn" class="btn btn-primary">
+                Nộp bài
+              </button>
+            </div>
+          </div>
+
+          <!-- Khối phụ: Tiến trình -->
+          <div class="quiz-sidebar">
+            <div class="timer-display">
+              <div class="timer-icon">⏱</div>
+              <div class="timer-value" id="timerDisplay">00:00</div>
+            </div>
+
+            <div class="progress-section">
+              <h3>Tiến trình</h3>
+              <div class="progress-stats">
+                <span>Đã làm: <strong id="answeredCount">0</strong></span>
+                <span>Còn lại: <strong id="remainingCount">0</strong></span>
+              </div>
+              <div id="progressGrid" class="progress-grid"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trang báo cáo kết quả -->
       <div id="resultScreen" class="screen">
         <div class="header">
-          <h1>Kết quả thi</h1>
+          <h1>Kết quả bài thi</h1>
         </div>
 
         <div class="result-summary">
-          <div class="result-score" id="resultScore">0</div>
+          <div class="score-card">
+            <div class="score-value" id="scoreValue">0</div>
+            <div class="score-label">Điểm</div>
+          </div>
+
           <div class="result-stats">
             <div class="stat-item">
-              <div class="stat-label">Số câu đúng</div>
-              <div class="stat-value" id="correctCount">0</div>
+              <span class="stat-label">Thời gian:</span>
+              <span class="stat-value" id="timeSpent">00:00</span>
             </div>
             <div class="stat-item">
-              <div class="stat-label">Số câu sai</div>
-              <div class="stat-value" id="wrongCount">0</div>
+              <span class="stat-label">Đúng:</span>
+              <span class="stat-value correct" id="correctCount">0</span>
             </div>
             <div class="stat-item">
-              <div class="stat-label">Câu bỏ trống</div>
-              <div class="stat-value" id="emptyCount">0</div>
+              <span class="stat-label">Sai:</span>
+              <span class="stat-value wrong" id="wrongCount">0</span>
             </div>
             <div class="stat-item">
-              <div class="stat-label">Tỉ lệ đúng</div>
-              <div class="stat-value" id="percentageScore">0%</div>
+              <span class="stat-label">Bỏ trống:</span>
+              <span class="stat-value empty" id="emptyCount">0</span>
             </div>
           </div>
         </div>
 
         <div class="result-details">
           <h2>Chi tiết từng câu</h2>
-          <table class="result-table" id="resultTable">
-            <thead>
-              <tr>
-                <th>Câu</th>
-                <th>Ảnh</th>
-                <th>Đáp án đúng</th>
-                <th>Đáp án của bạn</th>
-                <th>Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody id="resultTableBody"></tbody>
-          </table>
+          <div class="result-table-wrapper">
+            <table class="result-table">
+              <thead>
+                <tr>
+                  <th>Câu</th>
+                  <th>Ảnh</th>
+                  <th>Đáp án đúng</th>
+                  <th>Đáp án của bạn</th>
+                  <th>Kết quả</th>
+                </tr>
+              </thead>
+              <tbody id="resultTableBody"></tbody>
+            </table>
+          </div>
         </div>
 
-        <button id="backToHomeBtn" class="btn btn--primary">Quay lại</button>
+        <button id="backToHomeBtn" class="btn btn-primary">
+          Quay về trang chủ
+        </button>
       </div>
 
-      <!-- Image preview modal -->
-      <div id="imageModal" class="image-modal" aria-hidden="true">
-        <div class="image-modal__backdrop" id="imageModalBackdrop"></div>
-        <div class="image-modal__content" role="dialog" aria-modal="true">
-          <button
-            id="imageModalClose"
-            class="image-modal__close"
-            aria-label="Đóng"
-          >
-            ×
-          </button>
-          <img id="imageModalImg" src="" alt="Preview" />
+      <!-- Modal phóng to ảnh -->
+      <div id="imageModal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+          <button class="modal-close" id="modalCloseBtn">×</button>
+          <img id="modalImage" src="" alt="Phóng to" />
         </div>
       </div>
     </div>
