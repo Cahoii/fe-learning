@@ -365,25 +365,98 @@ function selectAnswer(answer) {
   if (!currentQuiz.questions.length) return;
 
   const answerBtns = answersGrid.querySelectorAll('.answer-btn');
+  const clickedBtn = answersGrid.querySelector(`[data-answer="${answer}"]`);
+  
+  // Check if already submitted
   if (answerBtns[0] && answerBtns[0].disabled) return;
 
-  currentQuiz.userAnswers[idx] = answer;
+  const correctAnswer = currentQuiz.questions[idx].answer;
+  
+  // Check if this is a multiple choice question (answer contains multiple letters)
+  const isMultipleChoice = correctAnswer.length > 1;
+  
+  if (isMultipleChoice) {
+    // Multiple choice mode - toggle selection
+    if (clickedBtn.classList.contains('selected')) {
+      clickedBtn.classList.remove('selected');
+    } else {
+      clickedBtn.classList.add('selected');
+    }
+    
+    // Get all selected answers
+    const selectedAnswers = Array.from(answerBtns)
+      .filter(btn => btn.classList.contains('selected'))
+      .map(btn => btn.dataset.answer)
+      .sort()
+      .join('');
+    
+    // Store current selection
+    currentQuiz.userAnswers[idx] = selectedAnswers || null;
+  } else {
+    // Single choice mode - select only one
+    answerBtns.forEach(btn => btn.classList.remove('selected'));
+    clickedBtn.classList.add('selected');
+    currentQuiz.userAnswers[idx] = answer;
+    
+    // Auto-submit after selection and show feedback
+    submitCurrentAnswer();
+  }
+}
 
+function submitCurrentAnswer() {
+  const idx = currentQuiz.currentIndex;
+  const userAnswer = currentQuiz.userAnswers[idx];
+  const correctAnswer = currentQuiz.questions[idx].answer;
+  const answerBtns = answersGrid.querySelectorAll('.answer-btn');
+  
+  // Disable all buttons
   answerBtns.forEach(btn => {
-    btn.classList.remove('selected', 'correct', 'wrong');
     btn.disabled = true;
   });
-
-  const correctAnswer = currentQuiz.questions[idx].answer;
-  if (answer === correctAnswer) {
-    answersGrid.querySelector(`[data-answer="${answer}"]`).classList.add('correct');
+  
+  const isMultipleChoice = correctAnswer.length > 1;
+  
+  if (isMultipleChoice) {
+    // Multiple choice: mark correct answers in green, wrong selections in red
+    const correctAnswers = correctAnswer.split('');
+    const userAnswers = (userAnswer || '').split('');
+    
+    answerBtns.forEach(btn => {
+      const btnAnswer = btn.dataset.answer;
+      if (correctAnswers.includes(btnAnswer)) {
+        btn.classList.add('correct');
+      }
+      if (userAnswers.includes(btnAnswer) && !correctAnswers.includes(btnAnswer)) {
+        btn.classList.add('wrong');
+      }
+    });
   } else {
-    answersGrid.querySelector(`[data-answer="${answer}"]`).classList.add('wrong');
-    answersGrid.querySelector(`[data-answer="${correctAnswer}"]`).classList.add('correct');
+    // Single choice: show correct answer and mark user's wrong answer if any
+    if (userAnswer === correctAnswer) {
+      answersGrid.querySelector(`[data-answer="${userAnswer}"]`).classList.add('correct');
+    } else {
+      if (userAnswer) {
+        answersGrid.querySelector(`[data-answer="${userAnswer}"]`).classList.add('wrong');
+      }
+      answersGrid.querySelector(`[data-answer="${correctAnswer}"]`).classList.add('correct');
+    }
   }
 }
 
 function nextQuestion() {
+  const idx = currentQuiz.currentIndex;
+  const answerBtns = answersGrid.querySelectorAll('.answer-btn');
+  
+  // If this is a multiple choice question and not yet submitted, submit first
+  const correctAnswer = currentQuiz.questions[idx].answer;
+  const isMultipleChoice = correctAnswer.length > 1;
+  
+  if (isMultipleChoice && !answerBtns[0].disabled) {
+    submitCurrentAnswer();
+    // Wait for user to see the result before moving to next question
+    return;
+  }
+  
   if (currentQuiz.currentIndex < currentQuiz.questions.length - 1) {
     currentQuiz.currentIndex++;
     renderQuestion();
@@ -405,7 +478,7 @@ function finishQuiz() {
     const correctAnswer = question.answer;
     let status = '';
     
-    if (userAnswer === null) {
+    if (userAnswer === null || userAnswer === '') {
       empty++;
       status = 'empty';
     } else if (userAnswer === correctAnswer) {
@@ -542,7 +615,21 @@ imageModalImg.addEventListener('dblclick', () => {
 
 // Event Listeners
 startBtn.addEventListener('click', startQuiz);
-nextBtn.addEventListener('click', nextQuestion);
+nextBtn.addEventListener('click', () => {
+  const idx = currentQuiz.currentIndex;
+  const answerBtns = answersGrid.querySelectorAll('.answer-btn');
+  const correctAnswer = currentQuiz.questions[idx].answer;
+  const isMultipleChoice = correctAnswer.length > 1;
+  
+  // If multiple choice and not submitted yet, this click submits the answer
+  if (isMultipleChoice && !answerBtns[0].disabled) {
+    submitCurrentAnswer();
+    nextBtn.textContent = currentQuiz.currentIndex === currentQuiz.questions.length - 1 ? 'Hoàn thành' : 'Tiếp theo';
+  } else {
+    // Otherwise, move to next question
+    nextQuestion();
+  }
+});
 backToSelectionBtn.addEventListener('click', backToSelection);
 backToHomeBtn.addEventListener('click', backToHome);
 clearHistoryBtn.addEventListener('click', clearHistory);

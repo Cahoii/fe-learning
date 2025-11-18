@@ -455,11 +455,10 @@ select.form-control {
 }
 
 .answers-grid {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-12);
-  order: 1;
-  width: 80px;
+  display: grid;
+  grid-template-columns: repeat(1, 1fr); /* Thay đổi từ 2 thành 3 cột */
+  gap: var(--space-16);
+  margin-top: var(--space-24);
 }
 
 .answer-btn {
@@ -526,6 +525,8 @@ select.form-control {
 .answer-btn:nth-child(2) { order: 2; }
 .answer-btn:nth-child(3) { order: 3; }
 .answer-btn:nth-child(4) { order: 4; }
+.answer-btn:nth-child(5) { order: 5; }
+.answer-btn:nth-child(6) { order: 6; }
 
 .quiz-controls {
   display: flex;
@@ -721,6 +722,7 @@ select.form-control {
   }
   
   .answers-grid {
+    grid-template-columns: repeat(2, 1fr); /* Mobile: 2 cột */
     order: 2;
   }
   
