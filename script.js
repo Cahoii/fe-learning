@@ -1,7 +1,8 @@
 // Question data - now stores data per subject
 const questionsData = {
   CSD203: [],
-  DBI202: []
+  DBI202: [],
+  DBI202_FE_SU25_B5: []
 };
 
 // Load questions from JSON file for a specific subject
@@ -251,8 +252,11 @@ function displayResults(score, correct, wrong, empty, percentage, timeSpent, res
       statusHtml = '<span class="status-empty">○ Bỏ trống</span>';
     }
 
+    // Support multiple image formats
+    let imgSrc = `data/${subject}/questions/${result.filename}`;
+    
     const imgCell = result.filename
-      ? `<td><img class="result-thumb" src="data/${subject}/questions/${result.filename}" data-src="data/${subject}/questions/${result.filename}" alt="Câu ${result.questionNum}" /></td>`
+      ? `<td><img class="result-thumb" src="${imgSrc}" data-src="${imgSrc}" alt="Câu ${result.questionNum}" onerror="this.style.display='none'" /></td>`
       : `<td>-</td>`;
     
     return `
@@ -335,11 +339,36 @@ function renderQuestion() {
   if (question && question.filename) {
     questionImage.innerHTML = '';
     const img = document.createElement('img');
-    img.src = `data/${currentQuiz.subject}/questions/${question.filename}`;
+    
+    // Support multiple image formats (PNG, JPG, JPEG, WebP)
+    let imagePath = `data/${currentQuiz.subject}/questions/${question.filename}`;
+    
+    // If filename doesn't have extension, try common formats
+    if (!question.filename.match(/\.(png|jpg|jpeg|webp)$/i)) {
+      // Try WebP first, then PNG, then JPG
+      const tryFormats = ['webp', 'png', 'jpg', 'jpeg'];
+      let formatIndex = 0;
+      
+      const tryNextFormat = () => {
+        if (formatIndex < tryFormats.length) {
+          const ext = tryFormats[formatIndex];
+          img.src = `data/${currentQuiz.subject}/questions/${question.filename}.${ext}`;
+          formatIndex++;
+        } else {
+          questionImage.innerHTML = question.filename;
+        }
+      };
+      
+      img.onerror = tryNextFormat;
+      tryNextFormat();
+    } else {
+      img.src = imagePath;
+      img.onerror = () => {
+        questionImage.innerHTML = question.filename;
+      };
+    }
+    
     img.alt = question.filename;
-    img.onerror = () => {
-      questionImage.innerHTML = question.filename;
-    };
     questionImage.appendChild(img);
   } else {
     questionImage.textContent = 'Không có ảnh';
