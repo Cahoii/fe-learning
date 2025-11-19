@@ -2,7 +2,9 @@
 const questionsData = {
   CSD203: [],
   DBI202: [],
-  DBI202_FE_SU25_B5: []
+  DBI202_FE_SU25: [],
+  DBI202_FE_SU25_B5: [],
+  DBI202_FE_SU25_RE: []
 };
 
 // Load questions from JSON file for a specific subject
