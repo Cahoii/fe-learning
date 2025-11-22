@@ -1,6 +1,6 @@
 [
   { "questionid": 1, "filename": "Question1.webp", "answer": "AB" },
-  { "questionid": 2, "filename": "Question2.webp", "answer": "EF" },
+  { "questionid": 2, "filename": "Question2.webp", "answer": "CE" },
   { "questionid": 3, "filename": "Question3.webp", "answer": "A" },
   { "questionid": 4, "filename": "Question4.webp", "answer": "A" },
   { "questionid": 5, "filename": "Question5.webp", "answer": "A" },
