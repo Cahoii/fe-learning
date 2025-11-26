@@ -13,6 +13,7 @@ const questionsData = {
   CEA201_SU25_B5: [],
   MAS291_C1FA25_FE: [],
   OSG202_FA25_FE: [],
+  OSG202_SU25_B5_1: [],
 };
 
 // Load questions from JSON file for a specific subject
