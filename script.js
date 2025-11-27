@@ -16,27 +16,80 @@ const questionsData = {
   OSG202_SU25_B5_1: [],
 };
 
-// Load questions from JSON file for a specific subject
+// Helper function to parse CSV text into JSON object
+function parseCSV(csvText) {
+  const lines = csvText.split(/\r?\n/); // Handle both Windows (\r\n) and Unix (\n) line endings
+  if (lines.length < 2) return [];
+
+  // Get headers from first line, remove quotes and whitespace, convert to lowercase
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+  
+  const result = [];
+  
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue; // Skip empty lines
+    
+    // Split by comma (basic splitting, assumes no commas inside values)
+    const values = line.split(',');
+    const obj = {};
+    
+    headers.forEach((header, index) => {
+      let value = values[index] ? values[index].trim() : '';
+      // Remove quotes if present (e.g. "A" -> A)
+      value = value.replace(/^"|"$/g, '');
+      obj[header] = value;
+    });
+    
+    result.push(obj);
+  }
+  
+  return result;
+}
+
+// Load questions from JSON or CSV file for a specific subject
 async function loadQuestionsForSubject(subject) {
+  let data = null;
+  let format = '';
+
   try {
-    const response = await fetch(`data/${subject}/answers/answers.json`);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    // 1. Try loading JSON first
+    const jsonResponse = await fetch(`data/${subject}/answers/answers.json`);
+    if (jsonResponse.ok) {
+      data = await jsonResponse.json();
+      format = 'json';
+    } else {
+      // 2. If JSON fails (404), try loading CSV
+      console.log(`JSON not found for ${subject}, trying CSV...`);
+      const csvResponse = await fetch(`data/${subject}/answers/answers.csv`);
+      if (csvResponse.ok) {
+        const csvText = await csvResponse.text();
+        data = parseCSV(csvText);
+        format = 'csv';
+      } else {
+        throw new Error(`Could not load answers.json or answers.csv for ${subject}`);
+      }
     }
-    const data = await response.json();
+
+    // Process data (normalize fields)
+    questionsData[subject] = data.map((item, index) => {
+      // Handle different field names that might occur in CSV vs JSON
+      // JSON usually has: questionid, filename, answer
+      // CSV headers should ideally match, but we fallback to defaults
+      
+      return {
+        id: item.questionid || item.id || (index + 1),
+        filename: item.filename || item.image || `Question${item.questionid || index + 1}`,
+        answer: item.answer ? item.answer.toUpperCase() : ''
+      };
+    });
     
-    // Convert JSON data to internal format
-    questionsData[subject] = data.map((item) => ({
-      id: item.questionid,
-      filename: item.filename,
-      answer: item.answer
-    }));
-    
-    console.log(`Loaded ${questionsData[subject].length} questions for ${subject}`);
+    console.log(`Loaded ${questionsData[subject].length} questions for ${subject} (Format: ${format})`);
     return questionsData[subject];
+
   } catch (error) {
     console.error(`Error loading questions for ${subject}:`, error);
-    alert(`Không thể tải dữ liệu môn ${subject}. Vui lòng kiểm tra file answers.json`);
+    alert(`Không thể tải dữ liệu môn ${subject}. Vui lòng kiểm tra file answers.json hoặc answers.csv`);
     return [];
   }
 }
