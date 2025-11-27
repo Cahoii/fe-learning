@@ -290,8 +290,8 @@ Dự án này được phát hành dưới giấy phép MIT. Xem file `LICENSE` 
 
 **Your Name**
 
-- GitHub: [@yourusername](https://github.com/yourusername)
-- Email: your.email@example.com
+- GitHub: [Cahoii](https://github.com/Cahoii)
+- Email: tangth023@gmail.com
 
 ## 🙏 Lời cảm ơn
 
