@@ -12,31 +12,60 @@ const questionsData = {
   CEA201_SU25_RE: [],
   CEA201_SU25_B5: [],
   MAS291_C1FA25_FE: [],
+  MAS291_C2FA25_FE: [],
   OSG202_FA25_FE: [],
   OSG202_SU25_B5_1: [],
 };
 
+// Exam structure: môn học -> các đề thi
+const examStructure = {
+  CSD203: [
+    { value: 'CSD203', label: 'CSD203 - Đề chính (175 câu)' }
+  ],
+  DBI202: [
+    { value: 'DBI202', label: 'DBI202 - Đề chính (203 câu)' },
+    { value: 'DBI202_FE_SU25', label: 'DBI202 - FE SU25' },
+    { value: 'DBI202_FE_SU25_B5', label: 'DBI202 - FE SU25 B5' },
+    { value: 'DBI202_FE_SU25_RE', label: 'DBI202 - FE SU25 RE' }
+  ],
+  JPD113: [
+    { value: 'JPD113_SU25_FE', label: 'JPD113 - FE SU25' },
+    { value: 'JPD113_SU25_RE', label: 'JPD113 - RE SU25' },
+    { value: 'JPD113_SU25_B5', label: 'JPD113 - B5 SU25' }
+  ],
+  CEA201: [
+    { value: 'CEA201_SU25_FE', label: 'CEA201 - FE SU25' },
+    { value: 'CEA201_SU25_RE', label: 'CEA201 - RE SU25' },
+    { value: 'CEA201_SU25_B5', label: 'CEA201 - B5 SU25' }
+  ],
+  MAS291: [
+    { value: 'MAS291_C1FA25_FE', label: 'MAS291 - C1 FA25 FE' },
+    { value: 'MAS291_C2FA25_FE', label: 'MAS291 - C2 FA25 FE' }
+  ],
+  OSG202: [
+    { value: 'OSG202_FA25_FE', label: 'OSG202 - FA25 FE' },
+    { value: 'OSG202_SU25_B5_1', label: 'OSG202 - SU25 B5' }
+  ]
+};
+
 // Helper function to parse CSV text into JSON object
 function parseCSV(csvText) {
-  const lines = csvText.split(/\r?\n/); // Handle both Windows (\r\n) and Unix (\n) line endings
+  const lines = csvText.split(/\r?\n/);
   if (lines.length < 2) return [];
 
-  // Get headers from first line, remove quotes and whitespace, convert to lowercase
   const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
   
   const result = [];
   
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
-    if (!line) continue; // Skip empty lines
+    if (!line) continue;
     
-    // Split by comma (basic splitting, assumes no commas inside values)
     const values = line.split(',');
     const obj = {};
     
     headers.forEach((header, index) => {
       let value = values[index] ? values[index].trim() : '';
-      // Remove quotes if present (e.g. "A" -> A)
       value = value.replace(/^"|"$/g, '');
       obj[header] = value;
     });
@@ -53,13 +82,11 @@ async function loadQuestionsForSubject(subject) {
   let format = '';
 
   try {
-    // 1. Try loading JSON first
     const jsonResponse = await fetch(`data/${subject}/answers/answers.json`);
     if (jsonResponse.ok) {
       data = await jsonResponse.json();
       format = 'json';
     } else {
-      // 2. If JSON fails (404), try loading CSV
       console.log(`JSON not found for ${subject}, trying CSV...`);
       const csvResponse = await fetch(`data/${subject}/answers/answers.csv`);
       if (csvResponse.ok) {
@@ -71,12 +98,7 @@ async function loadQuestionsForSubject(subject) {
       }
     }
 
-    // Process data (normalize fields)
     questionsData[subject] = data.map((item, index) => {
-      // Handle different field names that might occur in CSV vs JSON
-      // JSON usually has: questionid, filename, answer
-      // CSV headers should ideally match, but we fallback to defaults
-      
       return {
         id: item.questionid || item.id || (index + 1),
         filename: item.filename || item.image || `Question${item.questionid || index + 1}`,
@@ -97,7 +119,6 @@ async function loadQuestionsForSubject(subject) {
 // In-memory storage for history (now synced with localStorage)
 let testHistory = [];
 
-// Load history from localStorage on page load
 function loadHistoryFromStorage() {
   try {
     const stored = localStorage.getItem('testHistory');
@@ -109,7 +130,6 @@ function loadHistoryFromStorage() {
   }
 }
 
-// Save history to localStorage
 function saveHistoryToStorage() {
   try {
     localStorage.setItem('testHistory', JSON.stringify(testHistory));
@@ -118,7 +138,6 @@ function saveHistoryToStorage() {
   }
 }
 
-// Clear history from localStorage
 function clearHistory() {
   if (confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử thi?')) {
     testHistory = [];
@@ -132,7 +151,7 @@ let currentQuiz = {
   questions: [],
   currentIndex: 0,
   userAnswers: [],
-  subject: 'CSD203',
+  subject: '',
   startTime: null,
   elapsedTime: 0,
   timerInterval: null
@@ -143,6 +162,9 @@ const selectionScreen = document.getElementById('selectionScreen');
 const quizScreen = document.getElementById('quizScreen');
 const resultScreen = document.getElementById('resultScreen');
 
+const subjectSelect = document.getElementById('subjectSelect');
+const examSelect = document.getElementById('examSelect');
+const examGroup = document.getElementById('examGroup');
 const questionCountInput = document.getElementById('questionCount');
 const questionError = document.getElementById('questionError');
 const startBtn = document.getElementById('startBtn');
@@ -192,9 +214,33 @@ function showScreen(screen) {
   screen.classList.add('active');
 }
 
+// Populate exam dropdown based on selected subject
+function populateExamDropdown(subject) {
+  examSelect.innerHTML = '<option value="">-- Chọn đề thi --</option>';
+  
+  if (subject && examStructure[subject]) {
+    examStructure[subject].forEach(exam => {
+      const option = document.createElement('option');
+      option.value = exam.value;
+      option.textContent = exam.label;
+      examSelect.appendChild(option);
+    });
+    examGroup.style.display = 'block';
+    examSelect.value = '';
+  } else {
+    examGroup.style.display = 'none';
+  }
+}
+
 function validateQuestionCount() {
-  const subject = document.getElementById('subjectSelect').value;
-  const maxQuestions = questionsData[subject]?.length || 175;
+  const examCode = examSelect.value;
+  if (!examCode) {
+    questionError.textContent = 'Vui lòng chọn môn học và đề thi';
+    questionError.style.display = 'block';
+    return false;
+  }
+  
+  const maxQuestions = questionsData[examCode]?.length || 175;
   const count = parseInt(questionCountInput.value);
   
   if (isNaN(count) || count < 1) {
@@ -204,7 +250,7 @@ function validateQuestionCount() {
   }
   
   if (count > maxQuestions) {
-    questionError.textContent = `Số câu hỏi tối đa cho môn này là ${maxQuestions}`;
+    questionError.textContent = `Số câu hỏi tối đa cho đề này là ${maxQuestions}`;
     questionError.style.display = 'block';
     return false;
   }
@@ -267,7 +313,7 @@ function renderHistory() {
       ${sortedHistory.map((item, index) => `
         <tr>
           <td>${index + 1}</td>
-          <td>${item.subject || 'CSD203'}</td>
+          <td>${item.subject || 'N/A'}</td>
           <td>${formatDate(item.date)}</td>
           <td>${item.totalQuestions}</td>
           <td>${formatTime(item.timeSpent || 0)}</td>
@@ -282,7 +328,6 @@ function renderHistory() {
   historyContainer.innerHTML = '';
   historyContainer.appendChild(table);
 
-  // Attach click handlers for "Xem chi tiết" buttons
   table.querySelectorAll('button[data-history-index]').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const idx = parseInt(e.target.getAttribute('data-history-index'));
@@ -298,7 +343,6 @@ function displayResults(score, correct, wrong, empty, percentage, timeSpent, res
   emptyCount.textContent = empty;
   percentageScore.textContent = percentage.toFixed(1) + '%';
   
-  // Render results table with time info header
   const timeInfo = `
     <div class="result-time-info">
       <span class="result-time-label">Thời gian làm bài:</span>
@@ -316,7 +360,6 @@ function displayResults(score, correct, wrong, empty, percentage, timeSpent, res
       statusHtml = '<span class="status-empty">○ Bỏ trống</span>';
     }
 
-    // Support multiple image formats
     let imgSrc = `data/${subject}/questions/${result.filename}`;
     
     const imgCell = result.filename
@@ -334,13 +377,11 @@ function displayResults(score, correct, wrong, empty, percentage, timeSpent, res
     `;
   }).join('');
   
-  // Insert time info before table
   const resultTable = document.getElementById('resultTable');
   const existingTimeInfo = document.querySelector('.result-time-info');
   if (existingTimeInfo) existingTimeInfo.remove();
   resultTable.insertAdjacentHTML('beforebegin', timeInfo);
   
-  // Attach click handlers to thumbnails to open modal
   document.querySelectorAll('.result-thumb').forEach(img => {
     img.addEventListener('click', (e) => {
       openImageModal(e.target.dataset.src, e.target.alt);
@@ -349,7 +390,6 @@ function displayResults(score, correct, wrong, empty, percentage, timeSpent, res
 }
 
 function showHistoryDetail(historyItem) {
-  // Display summary stats and time with subject
   displayResults(
     historyItem.score,
     historyItem.correct,
@@ -358,7 +398,7 @@ function showHistoryDetail(historyItem) {
     historyItem.percentage,
     historyItem.timeSpent || 0,
     historyItem.detailedResults || [],
-    historyItem.subject || 'CSD203'
+    historyItem.subject || ''
   );
   
   showScreen(resultScreen);
@@ -367,24 +407,23 @@ function showHistoryDetail(historyItem) {
 async function startQuiz() {
   if (!validateQuestionCount()) return;
   
-  const subject = document.getElementById('subjectSelect').value;
+  const examCode = examSelect.value;
   const count = parseInt(questionCountInput.value);
   
-  // Load questions if not loaded yet
-  if (!questionsData[subject] || questionsData[subject].length === 0) {
-    await loadQuestionsForSubject(subject);
+  if (!questionsData[examCode] || questionsData[examCode].length === 0) {
+    await loadQuestionsForSubject(examCode);
   }
   
-  if (!questionsData[subject] || questionsData[subject].length === 0) {
-    alert('Không có dữ liệu câu hỏi cho môn này!');
+  if (!questionsData[examCode] || questionsData[examCode].length === 0) {
+    alert('Không có dữ liệu câu hỏi cho đề thi này!');
     return;
   }
   
-  const shuffled = shuffleArray(questionsData[subject]);
+  const shuffled = shuffleArray(questionsData[examCode]);
   currentQuiz.questions = shuffled.slice(0, count);
   currentQuiz.currentIndex = 0;
   currentQuiz.userAnswers = new Array(count).fill(null);
-  currentQuiz.subject = subject;
+  currentQuiz.subject = examCode;
   
   startTimer();
   renderQuestion();
@@ -399,17 +438,13 @@ function renderQuestion() {
   quizTitle.textContent = currentQuiz.subject;
   quizProgress.textContent = `Câu ${currentNum}/${totalQuestions}`;
 
-  // Display image from data/{subject}/questions/ folder
   if (question && question.filename) {
     questionImage.innerHTML = '';
     const img = document.createElement('img');
     
-    // Support multiple image formats (PNG, JPG, JPEG, WebP)
     let imagePath = `data/${currentQuiz.subject}/questions/${question.filename}`;
     
-    // If filename doesn't have extension, try common formats
     if (!question.filename.match(/\.(png|jpg|jpeg|webp)$/i)) {
-      // Try WebP first, then PNG, then JPG
       const tryFormats = ['webp', 'png', 'jpg', 'jpeg'];
       let formatIndex = 0;
       
@@ -438,14 +473,12 @@ function renderQuestion() {
     questionImage.textContent = 'Không có ảnh';
   }
   
-  // Update answer buttons: reset state
   const answerBtns = answersGrid.querySelectorAll('.answer-btn');
   answerBtns.forEach(btn => {
     btn.classList.remove('selected', 'correct', 'wrong');
     btn.disabled = false;
   });
   
-  // Update next button text
   if (currentQuiz.currentIndex === totalQuestions - 1) {
     nextBtn.textContent = 'Hoàn thành';
   } else {
@@ -460,38 +493,29 @@ function selectAnswer(answer) {
   const answerBtns = answersGrid.querySelectorAll('.answer-btn');
   const clickedBtn = answersGrid.querySelector(`[data-answer="${answer}"]`);
   
-  // Check if already submitted
   if (answerBtns[0] && answerBtns[0].disabled) return;
 
   const correctAnswer = currentQuiz.questions[idx].answer;
-  
-  // Check if this is a multiple choice question (answer contains multiple letters)
   const isMultipleChoice = correctAnswer.length > 1;
   
   if (isMultipleChoice) {
-    // Multiple choice mode - toggle selection
     if (clickedBtn.classList.contains('selected')) {
       clickedBtn.classList.remove('selected');
     } else {
       clickedBtn.classList.add('selected');
     }
     
-    // Get all selected answers
     const selectedAnswers = Array.from(answerBtns)
       .filter(btn => btn.classList.contains('selected'))
       .map(btn => btn.dataset.answer)
       .sort()
       .join('');
     
-    // Store current selection
     currentQuiz.userAnswers[idx] = selectedAnswers || null;
   } else {
-    // Single choice mode - select only one
     answerBtns.forEach(btn => btn.classList.remove('selected'));
     clickedBtn.classList.add('selected');
     currentQuiz.userAnswers[idx] = answer;
-    
-    // Auto-submit after selection and show feedback
     submitCurrentAnswer();
   }
 }
@@ -502,7 +526,6 @@ function submitCurrentAnswer() {
   const correctAnswer = currentQuiz.questions[idx].answer;
   const answerBtns = answersGrid.querySelectorAll('.answer-btn');
   
-  // Disable all buttons
   answerBtns.forEach(btn => {
     btn.disabled = true;
   });
@@ -510,7 +533,6 @@ function submitCurrentAnswer() {
   const isMultipleChoice = correctAnswer.length > 1;
   
   if (isMultipleChoice) {
-    // Multiple choice: mark correct answers in green, wrong selections in red
     const correctAnswers = correctAnswer.split('');
     const userAnswers = (userAnswer || '').split('');
     
@@ -524,7 +546,6 @@ function submitCurrentAnswer() {
       }
     });
   } else {
-    // Single choice: show correct answer and mark user's wrong answer if any
     if (userAnswer === correctAnswer) {
       answersGrid.querySelector(`[data-answer="${userAnswer}"]`).classList.add('correct');
     } else {
@@ -539,14 +560,11 @@ function submitCurrentAnswer() {
 function nextQuestion() {
   const idx = currentQuiz.currentIndex;
   const answerBtns = answersGrid.querySelectorAll('.answer-btn');
-  
-  // If this is a multiple choice question and not yet submitted, submit first
   const correctAnswer = currentQuiz.questions[idx].answer;
   const isMultipleChoice = correctAnswer.length > 1;
   
   if (isMultipleChoice && !answerBtns[0].disabled) {
     submitCurrentAnswer();
-    // Wait for user to see the result before moving to next question
     return;
   }
   
@@ -561,7 +579,6 @@ function nextQuestion() {
 function finishQuiz() {
   stopTimer();
   
-  // Calculate results
   let correct = 0;
   let wrong = 0;
   let empty = 0;
@@ -595,7 +612,6 @@ function finishQuiz() {
   const score = (correct / totalQuestions) * 10;
   const percentage = (correct / totalQuestions) * 100;
   
-  // Save to history
   testHistory.push({
     date: new Date(),
     subject: currentQuiz.subject,
@@ -714,12 +730,10 @@ nextBtn.addEventListener('click', () => {
   const correctAnswer = currentQuiz.questions[idx].answer;
   const isMultipleChoice = correctAnswer.length > 1;
   
-  // If multiple choice and not submitted yet, this click submits the answer
   if (isMultipleChoice && !answerBtns[0].disabled) {
     submitCurrentAnswer();
     nextBtn.textContent = currentQuiz.currentIndex === currentQuiz.questions.length - 1 ? 'Hoàn thành' : 'Tiếp theo';
   } else {
-    // Otherwise, move to next question
     nextQuestion();
   }
 });
@@ -733,22 +747,27 @@ answersGrid.addEventListener('click', (e) => {
   }
 });
 
+// Subject select change handler
+subjectSelect.addEventListener('change', (e) => {
+  const subject = e.target.value;
+  populateExamDropdown(subject);
+});
+
+// Exam select change handler
+examSelect.addEventListener('change', async (e) => {
+  const examCode = e.target.value;
+  if (examCode) {
+    if (!questionsData[examCode] || questionsData[examCode].length === 0) {
+      await loadQuestionsForSubject(examCode);
+    }
+    const maxQuestions = questionsData[examCode]?.length || 100;
+    questionCountInput.setAttribute('max', maxQuestions);
+    questionCountInput.value = Math.min(parseInt(questionCountInput.value), maxQuestions);
+  }
+});
+
 // Initialize app
 (async function init() {
   loadHistoryFromStorage();
   renderHistory();
-  
-  // Load CSD203 by default
-  await loadQuestionsForSubject('CSD203');
-  
-  // Update max value when subject changes
-  document.getElementById('subjectSelect').addEventListener('change', async (e) => {
-    const subject = e.target.value;
-    if (!questionsData[subject] || questionsData[subject].length === 0) {
-      await loadQuestionsForSubject(subject);
-    }
-    const maxQuestions = questionsData[subject]?.length || 175;
-    questionCountInput.setAttribute('max', maxQuestions);
-    questionCountInput.value = Math.min(parseInt(questionCountInput.value), maxQuestions);
-  });
 })();
