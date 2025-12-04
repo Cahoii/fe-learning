@@ -2,6 +2,7 @@
 const questionsData = {
   CSD203: [],
   DBI202: [],
+  AIG202c: [],
   DBI202_FE_SU25: [],
   DBI202_FE_SU25_B5: [],
   DBI202_FE_SU25_RE: [],
@@ -27,6 +28,9 @@ const examStructure = {
     { value: 'DBI202_FE_SU25', label: 'DBI202 - FE SU25' },
     { value: 'DBI202_FE_SU25_B5', label: 'DBI202 - FE SU25 B5' },
     { value: 'DBI202_FE_SU25_RE', label: 'DBI202 - FE SU25 RE' }
+  ],
+  AIG202c: [
+    { value: 'AIG202c', label: 'AIG202c - Đề chính (100 câu)' }
   ],
   JPD113: [
     { value: 'JPD113_SU25_FE', label: 'JPD113 - FE SU25' },
