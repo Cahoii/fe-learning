@@ -86,17 +86,22 @@ async function loadQuestionsForSubject(subject) {
   let format = '';
 
   try {
+    console.log(`🔍 Loading data for subject: ${subject}`);
+    
     const jsonResponse = await fetch(`data/${subject}/answers/answers.json`);
     if (jsonResponse.ok) {
       data = await jsonResponse.json();
       format = 'json';
+      console.log(`✅ Loaded JSON for ${subject}`);
     } else {
-      console.log(`JSON not found for ${subject}, trying CSV...`);
+      console.log(`❌ JSON not found for ${subject} (Status: ${jsonResponse.status}), trying CSV...`);
       const csvResponse = await fetch(`data/${subject}/answers/answers.csv`);
       if (csvResponse.ok) {
         const csvText = await csvResponse.text();
+        console.log(`📄 CSV raw text (first 200 chars):`, csvText.substring(0, 200));
         data = parseCSV(csvText);
         format = 'csv';
+        console.log(`✅ Loaded CSV for ${subject}`);
       } else {
         throw new Error(`Could not load answers.json or answers.csv for ${subject}`);
       }
@@ -110,11 +115,13 @@ async function loadQuestionsForSubject(subject) {
       };
     });
     
-    console.log(`Loaded ${questionsData[subject].length} questions for ${subject} (Format: ${format})`);
+    // Log chi tiết 3 câu đầu tiên
+    console.log(`📊 Sample data for ${subject}:`, questionsData[subject].slice(0, 3));
+    console.log(`✅ Loaded ${questionsData[subject].length} questions for ${subject} (Format: ${format})`);
     return questionsData[subject];
 
   } catch (error) {
-    console.error(`Error loading questions for ${subject}:`, error);
+    console.error(`❌ Error loading questions for ${subject}:`, error);
     alert(`Không thể tải dữ liệu môn ${subject}. Vui lòng kiểm tra file answers.json hoặc answers.csv`);
     return [];
   }
@@ -442,6 +449,8 @@ function renderQuestion() {
   quizTitle.textContent = currentQuiz.subject;
   quizProgress.textContent = `Câu ${currentNum}/${totalQuestions}`;
 
+  console.log(`🖼️ Rendering question ${currentNum}:`, question);
+
   if (question && question.filename) {
     questionImage.innerHTML = '';
     const img = document.createElement('img');
@@ -449,31 +458,49 @@ function renderQuestion() {
     let imagePath = `data/${currentQuiz.subject}/questions/${question.filename}`;
     
     if (!question.filename.match(/\.(png|jpg|jpeg|webp)$/i)) {
-      const tryFormats = ['webp', 'png', 'jpg', 'jpeg'];
+      console.log(`⚠️ Filename without extension: ${question.filename}, trying multiple formats...`);
+      const tryFormats = ['webp', 'png', 'jpg', 'jpeg', 'PNG', 'JPG', 'JPEG', 'WEBP'];
       let formatIndex = 0;
       
       const tryNextFormat = () => {
         if (formatIndex < tryFormats.length) {
           const ext = tryFormats[formatIndex];
-          img.src = `data/${currentQuiz.subject}/questions/${question.filename}.${ext}`;
+          const testPath = `data/${currentQuiz.subject}/questions/${question.filename}.${ext}`;
+          console.log(`🔄 Trying format: ${testPath}`);
+          img.src = testPath;
           formatIndex++;
         } else {
-          questionImage.innerHTML = question.filename;
+          console.error(`❌ All formats failed for: ${question.filename}`);
+          questionImage.innerHTML = `<p style="color: red;">Không tìm thấy ảnh: ${question.filename}</p>`;
         }
       };
       
-      img.onerror = tryNextFormat;
+      img.onerror = () => {
+        console.error(`❌ Failed to load: ${img.src}`);
+        tryNextFormat();
+      };
+      
+      img.onload = () => {
+        console.log(`✅ Successfully loaded: ${img.src}`);
+      };
+      
       tryNextFormat();
     } else {
+      console.log(`📷 Loading image with extension: ${imagePath}`);
       img.src = imagePath;
       img.onerror = () => {
-        questionImage.innerHTML = question.filename;
+        console.error(`❌ Failed to load image: ${imagePath}`);
+        questionImage.innerHTML = `<p style="color: red;">Không tìm thấy ảnh: ${question.filename}</p>`;
+      };
+      img.onload = () => {
+        console.log(`✅ Successfully loaded: ${imagePath}`);
       };
     }
     
     img.alt = question.filename;
     questionImage.appendChild(img);
   } else {
+    console.warn(`⚠️ No filename found for question ${currentNum}`);
     questionImage.textContent = 'Không có ảnh';
   }
   
