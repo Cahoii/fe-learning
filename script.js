@@ -29,6 +29,7 @@ const examStructure = {
   CSD203: [
     { value: 'CSD203', label: 'CSD203 - Đề chính (175 câu)' },
     { value: 'CSD203_FA25_FE', label: 'CSD203 - FA25 FE' },
+    { value: 'CSD203_SU25_RE', label: 'CSD203 - SU25 RE' },
   ],
   DBI202: [
     { value: 'DBI202', label: 'DBI202 - Đề chính (203 câu)' },
