@@ -27,7 +27,8 @@ const questionsData = {
 // Exam structure: môn học -> các đề thi
 const examStructure = {
   CSD203: [
-    { value: 'CSD203', label: 'CSD203 - Đề chính (175 câu)' }
+    { value: 'CSD203', label: 'CSD203 - Đề chính (175 câu)' },
+    { value: 'CSD203_FA25_FE', label: 'CSD203 - FA25 FE' },
   ],
   DBI202: [
     { value: 'DBI202', label: 'DBI202 - Đề chính (203 câu)' },
