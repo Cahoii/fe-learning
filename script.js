@@ -11,6 +11,7 @@ const questionsData = {
   DBI202_FE_SU25_B5: [],
   DBI202_FE_SU25_RE: [],
   DBI202_FA25_FE: [],
+  DBI202_FA25_RE: [],
   JPD113_SU25_B5: [],
   JPD113_SU25_FE: [],
   JPD113_SU25_RE: [],
@@ -33,7 +34,8 @@ const examStructure = {
     { value: 'DBI202_FE_SU25', label: 'DBI202 - FE SU25' },
     { value: 'DBI202_FE_SU25_B5', label: 'DBI202 - FE SU25 B5' },
     { value: 'DBI202_FE_SU25_RE', label: 'DBI202 - FE SU25 RE' },
-    { value: 'DBI202_FA25_FE', label: 'DBI202 - FA25 FE' }
+    { value: 'DBI202_FA25_FE', label: 'DBI202 - FA25 FE' },
+    { value: 'DBI202_FA25_RE', label: 'DBI202 - FA25 RE' },
   ],
   AIG202c: [
     { value: 'AIG202c', label: 'AIG202c - Đề chính (100 câu)' },
