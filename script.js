@@ -1,6 +1,8 @@
 // Question data - now stores data per subject
 const questionsData = {
   CSD203: [],
+  CSD203_FA25_FE: [],
+  CSD203_SU25_RE: [],
   DBI202: [],
   AIG202c: [],
   AIG202c_SP25_FE_HCM: [],
@@ -29,7 +31,7 @@ const examStructure = {
   CSD203: [
     { value: 'CSD203', label: 'CSD203 - Đề chính (175 câu)' },
     { value: 'CSD203_FA25_FE', label: 'CSD203 - FA25 FE' },
-    { value: 'CSD203_SU25_RE', label: 'CSD203 - SU25 RE' },
+    { value: 'CSD203_FA25_RE', label: 'CSD203 - FA25 RE' },
   ],
   DBI202: [
     { value: 'DBI202', label: 'DBI202 - Đề chính (203 câu)' },
